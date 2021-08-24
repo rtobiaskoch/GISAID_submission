@@ -37,14 +37,17 @@ set.seed(1234)
 setwd("data_input")
 
 #fasta_file manually put into the folder
-fasta_file = list.files("fasta_file/")
+fasta_file = list.files("fasta_file/")[1]
 fasta_input = read.fasta(paste("fasta_file/",
-                               fasta_file[1],
+                               fasta_file,
                                sep = "") )
 
 #covidseq metadata results from YCGA
-seq_file = list.files(pattern = "*_metadata.xlsx")
-seq_input = read.xlsx(seq_file, sheetName = "Sheet1")
+seq_file = list.files("metadata/")[1]
+seq_input = read.xlsx(paste("metadata/",
+                            seq_file,
+                            sep = ""),
+                            sheetName = "Sheet1") #make sure the data is actually in sheet1 because sometimes it changes
 
 #lab names from glab metadata sheet
 #only need to redownload if a new lab is added to the list

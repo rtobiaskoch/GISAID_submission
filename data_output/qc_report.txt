@@ -1,0 +1,2 @@
+"","x"
+"1","14 samples were removed from the sequencing run due to low coverage, 164 samples yale-ids matched between the metadata and the fasta file, 1 samples didn't match between the metadata and the fasta file, 1 sample id's from fasta had no id in the metadata (rare) Statement: The length of fasta file and metadata being equal is TRUE"

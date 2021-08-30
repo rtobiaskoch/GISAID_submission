@@ -12,8 +12,6 @@
 #PACKAGE INSTALL ####
 packages = c("seqinr", "tidyverse", "lubridate", "xlsx", "rlist")
 
-
-
 ## Now load or install&load all
 package.check <- lapply(
   packages,
@@ -25,7 +23,7 @@ package.check <- lapply(
   }
 )
 
-rm(packages)
+rm(packages, package.check)
 
 set.seed(1234)
 
@@ -34,27 +32,31 @@ set.seed(1234)
 ####FILE INPUT ####
 #>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
 #<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<
-setwd("data_input")
 
 #fasta_file manually put into the folder
-fasta_file = list.files("fasta_file/")[1]
-fasta_input = read.fasta(paste("fasta_file/",
+fasta_file = list.files("data_input/fasta_file/")[1]
+fasta_input = read.fasta(paste("data_input/fasta_file/",
                                fasta_file,
-                               sep = "") )
+                               sep = "")
+                         )
 
 #covidseq metadata results from YCGA
-seq_file = list.files("metadata/")[1]
-seq_input = read.xlsx(paste("metadata/",
+seq_file = list.files("data_input/metadata/")[1]
+seq_input = read.xlsx(paste("data_input/metadata/",
                             seq_file,
                             sep = ""),
                             sheetName = "Sheet1") #make sure the data is actually in sheet1 because sometimes it changes
 
 #lab names from glab metadata sheet
 #only need to redownload if a new lab is added to the list
-lab_file = glab_file = list.files(pattern = "*Lab names.csv")
-lab_names = read.csv(lab_file)
+lab_file = list.files("data_input/",
+                                  pattern = "*Lab names.csv")[1]
+lab_names = read.csv(paste("data_input/",
+                           lab_file,
+                           sep = "")
+                      )
 
-rm(seq_file, fasta_file,lab_file)
+rm(seq_file, fasta_file, lab_file)
 
 #abbrevations of states
 states = read.csv("state_abbreviation.csv") %>%
@@ -67,7 +69,6 @@ states = read.csv("state_abbreviation.csv") %>%
           Continent = rep("Continent", 3)
           )
 
-setwd("..")
 #<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<
 #>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
 ####USER INPUT ####
@@ -131,6 +132,7 @@ submission = seq_input %>%
           covv_comment = ""
         )
 
+
 #>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
 #<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<
 # FASTA FILE HEADER SWITCH####
@@ -156,9 +158,14 @@ names(fasta_input2) = fa_names
 #removes any NA's in the fasta sample name
 #this would indicate a sample that was in run that shouldn't have been and isn't in our data
 #for samples that are in the metadata file but not in the fasta file please see removed
-fasta_input3 = list.subset(fasta_input2, !is.na(names(fasta_input2)
-                                               )
+fasta_input3 = list.subset(fasta_input2, 
+                           !is.na(names(fasta_input2)
+                                 )
                            )
+#creates dataframe filtered names for filtering the metadata submission
+fa_df_filter = data.frame(covv_virus_name = names(fasta_input3))
+                           
+
 
 #writes to output for new file
 write.fasta(sequences = fasta_input3, 
@@ -167,11 +174,11 @@ write.fasta(sequences = fasta_input3,
 
 #>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
 #<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<
-#Filter removed samples in sequence from metadata####
+#FILTER METADATA####
 #>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
 #<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<
 submission2 = submission %>%
-  semi_join(fa_df, by = c("fn" = "fasta")) #return rows in submission that have a id match in fasta
+  semi_join(fa_df_filter, by = "covv_virus_name") #return rows in submission that have an id match in fasta
 
 write.csv(submission2, "data_output/GISAID_submission.csv")
 
@@ -181,6 +188,37 @@ write.csv(submission2, "data_output/GISAID_submission.csv")
 #>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
 #<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<
 
+#REMOVED SAMPLES DATA
+#>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
+#counts number of removed samples.
+#These are samples that are in the metadata but not in the fasta file
+removed =
+  anti_join(submission,fa_df, by = c("fn" = "fasta"))
+
+write.csv(removed, "data_output/removed_check.csv")
+
+
+#REMOVED SAMPLES LAB SUMMARY
+#>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
+#creates summary table of the labs that have metadata being submitted
+#initially and after samples were removed
+lab_summary = data.frame(table(submission$covv_orig_lab) )
+
+lab_summary_final = data.frame(table(submission2$covv_orig_lab) ) 
+
+lab_summary_comb = full_join(lab_summary,lab_summary_final, by = "Var1") %>%
+  mutate(removed = Freq.x - Freq.y)
+
+write.csv(lab_summary_comb,"data_output/lab_summary.csv")
+
+#LAB NAMES
+#>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
+#missing lab names from glab sheet on the metadata
+missing_lab = submission %>%
+  filter(is.na(covv_orig_lab))
+
+#NEW FASTA ID MATCH
+#>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
 #makes new id for QC
 new_id = str_extract(c(names(fasta_input2)),
                        "Yale\\-[0-9]{4}")
@@ -206,19 +244,15 @@ na = sum(is.na(id_check))
 lmatch = nrow(submission2) == length(fasta_input3)
 
 
-#counts number of removed samples.
-#These are samples that are in the metadata but not in the fasta file
-removed =
-  anti_join(submission[,2:3],fa_df, by = c("fn" = "fasta"))
-
-write.csv(removed, "data_output/removed_check.csv")
-
 #printed report of QC
-qc_report = print(paste(nrow(removed), "samples were removed from the sequencing run due to low coverage,",
-      match, "samples yale-ids matched between the metadata and the fasta file,",
-      no_match, "samples didn't match between the metadata and the fasta file,",
-      na, "sample id's from fasta had no id in the metadata",
-      "Statement: The length of fasta file and metadata being equal is", lmatch)
+qc_report = print(paste(
+      "\n",
+      nrow(seq_input), "samples were in the initial metadata file.\n",
+      match, "samples yale-ids matched between the metadata and the fasta file.\n",
+      nrow(removed), "samples were removed from the sequencing run due to low coverage. \n",
+      nrow(missing_lab), "samples had no match to existing lab names.\n",
+      na, "sample id's from fasta had no id in the metadata.\n",
+      "\n Statement: The length of fasta file and metadata file being equal is", lmatch)
 )
 
 write.csv(qc_report, "data_output/qc_report.txt")  

@@ -40,12 +40,12 @@ fasta_input = read.fasta(paste("data_input/fasta_file/",
                                sep = "")
                          )
 
-#covidseq metadata results from YCGA
+#download metadata for fasta
 seq_file = list.files("data_input/metadata/")[1]
-seq_input = read.xlsx(paste("data_input/metadata/",
+seq_input = read.csv(paste("data_input/metadata/",
                             seq_file,
-                            sep = ""),
-                            sheetName = "Sheet1") #make sure the data is actually in sheet1 because sometimes it changes
+                            sep = "")
+                     ) #make sure to download as csv
 
 #lab names from glab metadata sheet
 #only need to redownload if a new lab is added to the list
@@ -66,7 +66,7 @@ states = read.csv("state_abbreviation.csv") %>%
   add_row(State = c("Puerto Rico", "US Virgin Islands", "Dominican Republic"), 
           Code = c("PR", "VI","DR"),
           Country = c("USA", "USA", "Dominican Republic"),
-          Continent = rep("Continent", 3)
+          Continent = rep("North America", 3)
           )
 
 #<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<
@@ -75,7 +75,7 @@ states = read.csv("state_abbreviation.csv") %>%
 #>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
 #<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<
 #column for argument this is your GISAID username
-gisaid_id = "rtobiaskoch"
+gisaid_id = "kb2228"
 
 #>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
 #<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<
@@ -87,6 +87,7 @@ gisaid_id = "rtobiaskoch"
 submission = seq_input %>%
   left_join(states, by = c("Division..state." = "State")) %>%
   left_join(lab_names, by = "Source") %>%
+  mutate(Collection.date = as.Date(Collection.date)) %>%
   transmute(Submitter       = gisaid_id,
           fn              = Sample.ID,
           covv_virus_name = str_c("hCov-19/", Country.y,
@@ -105,10 +106,12 @@ submission = seq_input %>%
           covv_location = str_c(Continent,
                             "/",
                             Country.y,
+                            "/",
                             Division..state.,
                             "/",
                             Location..county.
                             ),
+          covv_add_location = "",
           covv_host = "Human",   #the next few columns are static that don't change for submissions
           covv_add_host_info = "",
           covv_sampling_strategy = "",

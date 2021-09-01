@@ -148,7 +148,6 @@ fa_df = names(fasta_input) %>% #extracts names from fasta file
   left_join(submission[,2:3], by = c("fasta" = "fn")) #joins by Yale-ID from submission file 
                                                       #to get the Virus Name for the GISAID Submission
 
-
 #converts to a list to replace the names in the fasta file
 fa_names = as.list(fa_df$covv_virus_name)
 

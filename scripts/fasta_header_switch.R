@@ -3,7 +3,6 @@
 packages = c("seqinr", "tidyverse")
 
 
-
 ## Now load or install&load all
 package.check <- lapply(
   packages,
@@ -20,17 +19,15 @@ rm(packages)
 set.seed(1234)
 
 #fasta_file manually put into the folder
-fasta_file = list.files("fasta_file/")
-fasta_input = read.fasta(paste("fasta_file/",
-                               fasta_file[1],
-                               sep = "") )
+fasta_file = list.files(pattern = ".fa*")
+fasta_input = read.fasta(fasta_file)
 
 #>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
 #<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<
 # FASTA FILE HEADER SWITCH####
 #>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
 #<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<
-fa_name = names(fasta_input) %>%
+names(fast) = names(fasta_input) %>%
   tibble() %>%
   rename(old = ".") %>%
   extract(old, "new", regex = "(Yale\\-[0-9]{4})") %>%

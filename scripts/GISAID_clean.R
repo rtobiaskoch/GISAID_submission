@@ -33,7 +33,7 @@ set.seed(1234)
 #>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
 #<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<
 
-#fasta_file manually put into the folder
+#fasta_file manually put into the folder data_input/fasta_file it needs to be the only file in there
 fasta_file = list.files("data_input/fasta_file/")[1]
 fasta_input = read.fasta(paste("data_input/fasta_file/",
                                fasta_file,
@@ -41,9 +41,9 @@ fasta_input = read.fasta(paste("data_input/fasta_file/",
                          )
 
 #download metadata for fasta
-seq_file = list.files("data_input/metadata/")[1]
-seq_input = read.csv(paste("data_input/metadata/",
-                            seq_file,
+metadata_file = list.files("data_input/metadata/")[1]
+metadata_input = read.csv(paste("data_input/metadata/",
+                            metadata_file,
                             sep = "")
                      ) #make sure to download as csv
 
@@ -56,18 +56,10 @@ lab_names = read.csv(paste("data_input/",
                            sep = "")
                       )
 
-rm(seq_file, fasta_file, lab_file)
+rm(metadata_file, fasta_file, lab_file)
 
 #abbrevations of states
-states = read.csv("state_abbreviation.csv") %>%
-  select(-Abbrev) %>% #remove unnecessary column
-  mutate(Country = "USA",
-         Continent = "North America") %>%
-  add_row(State = c("Puerto Rico", "US Virgin Islands", "Dominican Republic"), 
-          Code = c("PR", "VI","DR"),
-          Country = c("USA", "USA", "Dominican Republic"),
-          Continent = rep("North America", 3)
-          )
+states = read.csv("data_input/state_abbreviation.csv")
 
 #<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<
 #>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
@@ -84,7 +76,7 @@ gisaid_id = "kb2228"
 #<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<
     
 ####FORMATTING COLUMNS ####
-submission = seq_input %>%
+submission = metadata_input %>%
   left_join(states, by = c("Division..state." = "State")) %>%
   left_join(lab_names, by = "Source") %>%
   mutate(Collection.date = as.Date(Collection.date)) %>%
@@ -144,7 +136,7 @@ submission = seq_input %>%
 fa_df = names(fasta_input) %>% #extracts names from fasta file
   tibble() %>% #converts to a tibble
   rename(old = ".") %>% #renames for easier reading
-  extract(old, "fasta", regex = "(Yale\\-[0-9]{4})") %>% #extracts Yale-ID from fasta file
+  extract(old, "fasta", regex = "(Yale\\-[0-9]*)") %>% #extracts Yale-ID from fasta file
   left_join(submission[,2:3], by = c("fasta" = "fn")) #joins by Yale-ID from submission file 
                                                       #to get the Virus Name for the GISAID Submission
 
@@ -249,7 +241,7 @@ lmatch = nrow(submission2) == length(fasta_input3)
 #printed report of QC
 qc_report = print(paste(
       "\n",
-      nrow(seq_input), "samples were in the initial metadata file.\n",
+      nrow(metadata_input), "samples were in the initial metadata file.\n",
       match, "samples yale-ids matched between the metadata and the fasta file.\n",
       nrow(removed), "samples were removed from the sequencing run due to low coverage. \n",
       nrow(missing_lab), "samples had no match to existing lab names.\n",

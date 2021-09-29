@@ -1,9 +1,9 @@
 "","x"
 "1","
- 9562 samples were in the initial metadata file.
- 264 samples yale-ids matched between the metadata and the fasta file.
- 9294 samples were removed from the sequencing run due to low coverage. 
+ 11191 samples were in the initial metadata file.
+ 355 samples yale-ids matched between the metadata and the fasta file.
+ 10835 samples were removed from the sequencing run due to low coverage. 
  551 samples had no match to existing lab names.
- 4 sample id's from fasta had no id in the metadata.
+ 1 sample id's from fasta had no id in the metadata.
  
  Statement: The length of fasta file and metadata file being equal is TRUE"

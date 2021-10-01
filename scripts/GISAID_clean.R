@@ -215,11 +215,11 @@ missing_lab = submission %>%
 #>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
 #makes new id for QC
 new_id = str_extract(c(names(fasta_input2)),
-                       "Yale\\-[0-9]{4}")
+                       "Yale\\-[0-9]*")
 
 #makes old id for QC
 old_id = str_extract(c(names(fasta_input)),
-                     "Yale\\-[0-9]{4}")
+                     "Yale\\-[0-9]*")
 
 #creates logical vector to check if the yale-ids match
 id_check = new_id == old_id
